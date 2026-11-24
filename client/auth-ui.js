@@ -4,6 +4,7 @@
  else if(root.document)api.mount(root);
 })(typeof window==='object'?window:globalThis,function(){
  'use strict';
+ const CONNECTED_MESSAGES=new Set(['Google 계정으로 연결했어요.','로그인한 Google 계정의 기록을 연결했어요.']);
  function create({request,app,render=()=>{},navigate=()=>{},reload=()=>{},confirm=()=>false,backup=()=>{},initialError=null,firebase=null}){
   let session=null,busy=false,notice='로그인 상태 확인 중',unsafe=false,pendingAuthChange=false;
   let incomingNotice=initialError==='access_denied'?'Google 로그인을 취소했어요. 기존 기록은 그대로입니다.':
@@ -111,6 +112,7 @@
     $('authRetry').hidden=!!session;
     $('authBackup').hidden=!unsafe;
     $('authNotice').textContent=notice;$('authNotice').hidden=!notice;
+    $('authNotice').classList.toggle('auth-confirmed',google&&!unsafe&&CONNECTED_MESSAGES.has(notice));
     for(const id of ['googleLogin','googleLogout','importLegacyAccount','authRetry'])$(id).disabled=busy;
     $('authBar').setAttribute('aria-busy',String(busy));
    }

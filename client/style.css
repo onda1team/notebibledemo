@@ -11,6 +11,7 @@ button:disabled{cursor:default;opacity:.38}
 .auth-bar button{border:1px solid #d7e1d2;border-radius:8px;background:#fff;padding:5px 9px;min-height:30px;font-size:11px;font-weight:650;white-space:nowrap}
 .auth-bar button:hover:not(:disabled){background:#edf3e9}.auth-bar .google-login{color:#303a34}.google-login>span{font-family:Arial,sans-serif;color:#4285f4;font-weight:700;margin-right:4px}
 .auth-bar #authNotice{flex-basis:100%;margin:1px 0 0;text-align:right;line-height:1.45;color:#76522e}
+.auth-bar #authNotice.auth-confirmed{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .auth-bar [hidden]{display:none!important}
 .backup-import-row{padding:9px 0;border-bottom:1px solid var(--line)}.backup-import-row label{display:flex;gap:8px;align-items:flex-start;font-size:12px}.backup-import-row pre{max-height:180px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:12px}.backup-import-row details{padding:7px 0 0 22px;font-size:12px}
 @media(max-width:559px){.auth-bar{gap:4px 7px;padding-bottom:5px}.auth-bar #authAccount{max-width:45vw}.auth-bar #authNotice{font-size:10px}}
@@ -317,6 +318,12 @@ body:is([data-tool=pen],[data-tool=highlight],[data-tool=erase]) .quote-plane{cu
 
 /* Keep the book selector over scripture and the paper controls over the writing page. */
 .top{grid-template-columns:minmax(0,46fr) minmax(0,54fr);grid-template-areas:"auth auth" "scripture-tools paper-tools";align-items:center;gap:9px}
+/* Fit account controls beside the scripture toolbar at laptop sizes. */
+@media(min-width:760px){
+  .top{grid-template-areas:"scripture-tools auth" "scripture-tools paper-tools";gap:4px 9px}
+  .top .auth-bar{align-self:end;padding:0}
+  .top .reader-tools{align-self:start}
+}
 .scripture-toolbar{grid-area:scripture-tools;min-width:0;display:grid;gap:3px}
 .scripture-toolbar-main{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:5px 9px}
 .top .reader-tools{grid-area:paper-tools;display:block}
@@ -326,6 +333,7 @@ body:is([data-tool=pen],[data-tool=highlight],[data-tool=erase]) .quote-plane{cu
 .top .scripture-toolbar .gesture-guide{white-space:normal}
 @media(max-width:559px){
   .top{grid-template-columns:minmax(0,1fr);grid-template-areas:"auth" "scripture-tools" "paper-tools";gap:5px}
+  .top .auth-bar{padding:0;column-gap:6px}
   .scripture-toolbar-main{justify-content:space-between}
   .top .scripture-toolbar .mode-bar .view-actions{margin-left:auto}
 }
