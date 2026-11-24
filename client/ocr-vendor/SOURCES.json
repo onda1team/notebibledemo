@@ -1,0 +1,34 @@
+{
+  "tesseract.js": {
+    "shasum": "5b2ff39aae92d59cef79589a43a0f3ab963801cc",
+    "tarball": "https://registry.npmjs.org/tesseract.js/-/tesseract.js-6.0.1.tgz",
+    "fileCount": 79,
+    "integrity": "sha512-/sPvMvrCtgxnNRCjbTYbr7BRu0yfWDsMZQ2a/T5aN/L1t8wUQN6tTWv6p6FwzpoEBA0jrN2UD2SX4QQFRdoDbA==",
+    "signatures": [
+      {
+        "sig": "MEYCIQD7fmqEHmweo3SOnSy5VBO2wvL6DU4zTHKsAmkOf6uY3wIhAPck4zAtYBW7DM6xRvzs5nJ/2yNLs8wDuUu5oguwZiGg",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      }
+    ],
+    "unpackedSize": 1409308
+  },
+  "tesseract.js-core": {
+    "shasum": "6f25da94f70f8e8f02aff47a43be61d49e6f67c3",
+    "tarball": "https://registry.npmjs.org/tesseract.js-core/-/tesseract.js-core-6.0.0.tgz",
+    "fileCount": 16,
+    "integrity": "sha512-1Qncm/9oKM7xgrQXZXNB+NRh19qiXGhxlrR8EwFbK5SaUbPZnS5OMtP/ghtqfd23hsr1ZvZbZjeuAGcMxd/ooA==",
+    "signatures": [
+      {
+        "sig": "MEUCIQCms2f/TIAV7NIHLNLZwWjjdkbtm3SxhpAJZZBD1HYSXQIgSMtPW8AByZmULEnxBAO2YdjlASOJGLlUHWQGXRsK018=",
+        "keyid": "SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA"
+      }
+    ],
+    "unpackedSize": 30606788
+  },
+  "tessdata_fast": {
+    "commit": "87416418657359cb625c412a48b6e1d6d41c29bd",
+    "model_url": "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/87416418657359cb625c412a48b6e1d6d41c29bd/kor.traineddata",
+    "git_blob_sha1": "60986d44497689f3abace0b148199476d93292e1"
+  },
+  "verification": "npm archives SHA512 SRI matched official registry metadata; Korean model Git blob SHA1 matched GitHub contents metadata at pinned commit. Files copied unchanged."
+}

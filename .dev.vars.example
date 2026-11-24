@@ -1,0 +1,8 @@
+# Copy to .dev.vars for local development only; never commit .dev.vars.
+# Google OAuth is enabled only on an exact HTTPS deployment origin.
+# Keep these values empty for local UI / mock-auth tests.
+# Verify real OAuth on a separate HTTPS test Worker, not HTTP localhost.
+APP_ORIGIN=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+TRUST_SITES_IDENTITY=0

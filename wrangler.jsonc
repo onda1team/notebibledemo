@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "yeobaek-bible",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-11-24",
+  "workers_dev": true,
+  "vars": {
+    // Set the exact HTTPS origin printed by your deployment; no trailing slash.
+    "APP_ORIGIN": "",
+    "GOOGLE_CLIENT_ID": "",
+    // Direct Workers requests cannot trust ChatGPT gateway identity headers.
+    "TRUST_SITES_IDENTITY": "0"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "yeobaek-bible",
+      // Replace with the real ID returned by `wrangler d1 create yeobaek-bible`.
+      // This placeholder is deliberately not a deployable database ID.
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "drizzle"
+    }
+  ]
+}
