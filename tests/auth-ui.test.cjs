@@ -79,3 +79,16 @@ test('Firebase logout remains blocked when the current account has pending notes
  const controller=create({firebase:{ready:async()=>info,signOut:async()=>signOuts++},app,request:()=>{throw Error('no API')}});
  await controller.load();assert.equal(await controller.logout(),false);assert.equal(signOuts,0);
 });
+test('locked Firebase account can reopen popup to recover memory-only notes without leaving the page',async()=>{
+ let info={account:null,provider:null,googleEnabled:true},owner=null,signIns=0;
+ const held=new Map([['firebase:A',{text:'unpersisted laptop note'}]]);
+ const sync={account:()=>owner,hasUnsavedRecovery:()=>held.size>0,entries:()=>[],lock:()=>{owner=null;}};
+ const firebase={ready:async()=>info,signIn:async()=>{signIns++;info={...info,account:'firebase:A',provider:'google'};}};
+ const controller=create({firebase,request:()=>{throw Error('must not use redirect API')},app:{sync,connectSync:async()=>{owner=info.account;assert.equal(held.get(owner).text,'unpersisted laptop note');return true;}},navigate:()=>{throw Error('must not navigate')},reload:()=>{throw Error('must not reload')}});
+ await controller.load();assert.equal(await controller.login(),true);assert.equal(signIns,1);assert.equal(owner,'firebase:A');assert.equal(held.size,1);
+});
+test('Firebase active-account switch is still blocked when memory-only notes exist',async()=>{
+ let signIns=0;const info={account:'firebase:A',provider:'google',googleEnabled:true};
+ const controller=create({firebase:{ready:async()=>info,signIn:async()=>signIns++},app:{sync:{account:()=>info.account,hasUnsavedRecovery:()=>true}}});
+ await controller.load();assert.equal(await controller.login(),false);assert.equal(signIns,0);
+});

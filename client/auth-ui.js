@@ -53,7 +53,11 @@
   }
   const login=()=>action(async()=>{
    if(!session?.googleEnabled){message('Google 로그인 준비 중');return false;}
-   if(!await safeToLeave())return false;
+   // A Firebase popup leaves this page (and its account-scoped recovery memory)
+   // alive. Let a locked user sign back in to recover those drafts. Redirect
+   // OAuth and switches from an active account still require confirmed storage.
+   const memoryReconnect=!!firebase&&!app.sync.account()&&app.sync.hasUnsavedRecovery?.();
+   if(!memoryReconnect&&!await safeToLeave())return false;
    if(firebase){await firebase.signIn();app.sync.lock();session=await firebase.ready();const connected=await app.connectSync();message(connected?'Google 계정으로 연결했어요.':'로그인했어요. 다시 연결을 눌러 기록 연결을 확인해 주세요.');return true;}
    navigate('/api/auth/google/start');return true;
   });
