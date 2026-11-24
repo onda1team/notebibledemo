@@ -8,3 +8,8 @@
 /backups/
 *.log
 /.openai/
+/.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*-debug.log

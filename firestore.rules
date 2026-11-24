@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owns(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    function validRecord(id) {
+      let data = request.resource.data;
+      return id.matches('^[1-3]?[A-Z]{2,3}[1-9][0-9]{0,2}$')
+        && data.keys().hasAll(['formatVersion', 'revision', 'updatedAt', 'stateJSON'])
+        && data.keys().hasOnly(['formatVersion', 'revision', 'updatedAt', 'stateJSON'])
+        && data.formatVersion == 2
+        && data.revision is int && data.revision >= 1
+        && data.updatedAt is timestamp && data.updatedAt == request.time
+        && data.stateJSON is string && data.stateJSON.size() > 0 && data.stateJSON.size() <= 750000;
+    }
+    match /users/{uid}/records/{id} {
+      allow read: if owns(uid);
+      allow create: if owns(uid) && validRecord(id) && request.resource.data.revision == 1;
+      allow update: if owns(uid) && validRecord(id) && request.resource.data.revision == resource.data.revision + 1;
+      // App trash is a revisioned snapshot; physical deletion is not a client operation.
+      allow delete: if false;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

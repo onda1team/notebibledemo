@@ -4,8 +4,8 @@
  else if(root.document)api.mount(root);
 })(typeof window==='object'?window:globalThis,function(){
  'use strict';
- function create({request,app,render=()=>{},navigate=()=>{},reload=()=>{},confirm=()=>false,backup=()=>{},initialError=null}){
-  let session=null,busy=false,notice='로그인 상태 확인 중',unsafe=false;
+ function create({request,app,render=()=>{},navigate=()=>{},reload=()=>{},confirm=()=>false,backup=()=>{},initialError=null,firebase=null}){
+  let session=null,busy=false,notice='로그인 상태 확인 중',unsafe=false,pendingAuthChange=false;
   let incomingNotice=initialError==='access_denied'?'Google 로그인을 취소했어요. 기존 기록은 그대로입니다.':
    ['invalid_token','token_exchange_failed'].includes(initialError)?'Google 로그인을 마치지 못했어요. 다시 로그인해 주세요.':'';
   const display=()=>render({session,busy,notice,unsafe});
@@ -19,7 +19,7 @@
   async function load(){
    if(busy)return false;busy=true;display();
    try{
-    const value=await api('session');
+    const value=firebase?await firebase.ready():await api('session');
     if(!value||!['google','chatgpt',null].includes(value.provider)||typeof value.googleEnabled!=='boolean')throw Error('unavailable');
     session=value;notice=incomingNotice||(value.sessionInvalid?'Google 로그인 시간이 끝났어요. 다시 로그인해 주세요.':value.googleEnabled?'':(value.provider==='google'?'':'Google 로그인 준비 중'));incomingNotice='';unsafe=false;return true;
    }catch{notice='로그인 상태를 확인하지 못했어요. 다시 확인해 주세요.';return false;}
@@ -48,17 +48,19 @@
   async function action(work){
    if(busy)return false;busy=true;unsafe=false;display();
    try{return await work();}
-   catch{message('요청을 완료하지 못했어요. 기존 기록은 그대로 두고 연결 상태를 확인해 주세요.');return false;}
-   finally{busy=false;display();}
+   catch(error){message(error?.code==='auth/popup-blocked'?'로그인 창이 차단됐어요. 팝업을 허용하고 Google 로그인을 다시 눌러주세요.':error?.code==='auth/popup-closed-by-user'?'로그인 창을 닫았어요. 기존 기록은 그대로입니다.':'요청을 완료하지 못했어요. 기존 기록은 그대로 두고 연결 상태를 확인해 주세요.');return false;}
+   finally{busy=false;display();if(pendingAuthChange){pendingAuthChange=false;void onAuthChange();}}
   }
   const login=()=>action(async()=>{
    if(!session?.googleEnabled){message('Google 로그인 준비 중');return false;}
    if(!await safeToLeave())return false;
+   if(firebase){await firebase.signIn();app.sync.lock();session=await firebase.ready();const connected=await app.connectSync();message(connected?'Google 계정으로 연결했어요.':'로그인했어요. 다시 연결을 눌러 기록 연결을 확인해 주세요.');return true;}
    navigate('/api/auth/google/start');return true;
   });
   const logout=()=>action(async()=>{
    if(session?.provider!=='google')return false;
    if(!await safeToLeave())return false;
+   if(firebase){await firebase.signOut();app.sync.lock();session=await firebase.ready();message('로그아웃했어요. 같은 Google 계정으로 로그인하면 기록을 다시 볼 수 있어요.');return true;}
    await api('logout','POST');app.sync.lock();reload();return true;
   });
   const importLegacy=()=>action(async()=>{
@@ -74,13 +76,24 @@
    if(!app?.sync)return;
    backup({records:app.sync.entries(),backups:app.sync.backups(),recoveryDrafts:app.sync.recoveryDrafts?.()||[]});
   }
-  return {load,login,logout,importLegacy,downloadBackup,safeToLeave};
+  async function onAuthChange(){
+   if(!firebase)return;
+   if(busy){pendingAuthChange=true;return;}
+   return action(async()=>{
+    const next=await firebase.ready(),current=app.sync.account();
+    if(current&&current!==next.account){app.prepareSync?.();app.save?.();app.sync.lock();}
+    session=next;
+    const connected=next.account&&(app.sync.account()===next.account||await app.connectSync());
+    message(connected?'로그인한 Google 계정의 기록을 연결했어요.':next.account?'로그인했어요. 다시 연결을 눌러 기록 연결을 확인해 주세요.':'Google 계정으로 로그인해 기록을 연결해 주세요.');return true;
+   });
+  }
+  return {load,login,logout,importLegacy,downloadBackup,safeToLeave,onAuthChange};
  }
  function mount(win){
   const doc=win.document,$=id=>doc.getElementById(id);
   if(!$('authAccount'))return;
   const app=win.CornellApp;
-  const controller=create({request:win.fetch.bind(win),app,confirm:win.confirm.bind(win),initialError:new URLSearchParams(win.location.search).get('auth_error'),
+  const controller=create({request:win.fetch.bind(win),app,firebase:win.YeoFirebaseAuth||null,confirm:win.confirm.bind(win),initialError:new URLSearchParams(win.location.search).get('auth_error'),
    navigate:path=>{const link=doc.createElement('a');link.href=new URL(path,win.location.origin).href;link.target='_top';doc.body.append(link);link.click();link.remove();},
    reload:()=>win.location.reload(),
    backup:data=>{const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),link=doc.createElement('a');link.href=url;link.download='여백성경-로그인전-기기백업.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);},
@@ -103,7 +116,7 @@
   $('importLegacyAccount').addEventListener('click',controller.importLegacy);
   $('authRetry').addEventListener('click',controller.load);
   $('authBackup').addEventListener('click',controller.downloadBackup);
-  void controller.load();return controller;
+  void controller.load().then(()=>{if(win.YeoFirebaseAuth)win.YeoFirebaseAuth.onChange(()=>void controller.onAuthChange());});return controller;
  }
  return {create,mount};
 });

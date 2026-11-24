@@ -1,92 +1,53 @@
-# GitHub에서 독립 배포하기
+# Firebase 배포 안내
 
-GitHub는 소스코드를 보관합니다. 이 앱은 서버 인증과 D1 데이터베이스를 사용하므로 GitHub Pages만으로 실행할 수 없습니다. 이 저장소의 독립 배포 대상은 Cloudflare Workers + D1입니다. 아래 과정은 실제 외부 리소스를 만들며, 비용·계정 조건은 사용하는 Cloudflare 계정에서 확인합니다.
+현재 대상은 Firebase 프로젝트 `notebible-2922a`입니다. 정적 화면은 Hosting, Google 로그인은 Authentication, 계정별 기록은 Cloud Firestore를 사용합니다. Cloud Functions·Cloud Run·Cloudflare 배포는 필요하지 않습니다.
 
-## 배포 전 상태
+## 콘솔 설정
 
-- `wrangler.jsonc`의 데이터베이스 ID와 로그인 설정은 비어 있습니다. 설정을 완료하기 전에는 실제 구글 로그인이 동작하지 않습니다.
-- GitHub Actions는 빌드와 테스트만 실행합니다. 푸시만으로 앱이 공개되거나 데이터베이스가 변경되지 않습니다.
-- 기존 Sites 주소와 비공개 접근 설정은 별도로 유지됩니다. Workers에 배포하면 별도의 주소와 데이터베이스가 생성됩니다.
+1. Firebase 콘솔에서 `notebible-2922a` 프로젝트를 선택하고 웹 앱을 등록합니다.
+2. Authentication → 로그인 방법에서 Google을 활성화하고 지원 이메일을 지정합니다.
+3. 승인된 도메인에 `notebible-2922a.web.app`과 `notebible-2922a.firebaseapp.com`이 있는지 확인합니다.
+4. Cloud Firestore의 기본 데이터베이스를 만들고 위치를 선택합니다. 보안 규칙은 저장소의 `firestore.rules`를 배포합니다. `firestore.indexes.json`은 큰 필기 JSON을 불필요한 검색 색인에서 제외합니다. 모든 사용자에게 읽기·쓰기를 허용하는 테스트 규칙으로 운영하지 않습니다.
+5. Spark 요금제를 유지하고 사용량을 확인합니다. 무료 한도에 도달하면 저장 요청이 실패할 수 있으므로 앱의 기기 초안과 백업을 함께 확인합니다.
 
-## 1. 코드 확인
+웹 앱은 Hosting의 `/__/firebase/init.json`에서 공개 Firebase 설정을 읽습니다. OAuth client secret이나 서비스 계정 키를 브라우저에 넣지 않습니다. Google 공급자 설정 전에는 실제 로그인을 검증한 것으로 간주하지 않습니다.
 
-Node.js 24를 사용합니다. 테스트 중 일부는 Node의 SQLite를 사용합니다.
+## 빌드와 배포
+
+Node.js 24.12 이상을 사용합니다.
 
 ```sh
 npm ci
-npm run build
+npm run build:firebase
 npm test
+npx firebase login
+npm run deploy:firebase
 ```
 
-`npm run dev`의 간단한 화면 미리보기는 테스트 계정·메모리 DB를 사용하는 개발 도구입니다. 실제 구글 로그인과 영구 저장은 아래 절차로 배포한 HTTPS 테스트 Worker에서 확인합니다.
+`.firebaserc`와 배포 명령이 프로젝트를 `notebible-2922a`로 지정합니다. `firebase.json`의 Hosting `predeploy`가 최신 코드를 다시 빌드합니다. 배포 파일은 `dist/firebase/`이며, Worker 서버·대화 기록·개인 백업은 포함되지 않습니다.
 
-## 2. Cloudflare 데이터베이스 만들기
+배포 명령이 성공한 뒤 [https://notebible-2922a.web.app](https://notebible-2922a.web.app)에서 확인합니다. GitHub 저장소 URL은 소스 열람 주소이며 앱 접속 주소와 다릅니다.
 
-Cloudflare 계정에 로그인한 다음 전용 데이터베이스를 만듭니다.
+## 배포 후 확인
 
-```sh
-npx wrangler login
-npx wrangler d1 create yeobaek-bible
-```
+- Google 로그인·로그아웃·재로그인과 로그인 취소를 확인합니다.
+- 같은 계정으로 두 브라우저 또는 기기에서 로그인하여 제목·키보드 메모·손글씨가 전달되는지 확인합니다.
+- 다른 Google 계정에서는 첫 계정의 기록이 보이지 않아야 합니다.
+- 네트워크가 끊겼을 때 기기 초안이 남고, 연결이 돌아오면 서버 저장 상태가 갱신되는지 확인합니다.
+- 같은 장을 동시에 수정하면 충돌을 표시하고 양쪽 기록을 보존하는지 확인합니다.
 
-반환된 실제 `database_id`를 `wrangler.jsonc`에 넣습니다. 기존 Sites 데이터베이스 ID를 추측해 입력하지 않습니다. 독립 Worker에서 `TRUST_SITES_IDENTITY`는 반드시 `"0"`으로 유지합니다. 일반 인터넷 요청의 ChatGPT 사용자 헤더는 신원 증명이 아닙니다.
+자동화 테스트와 실제 로그인 검증은 별개입니다. 실제 사용자의 맥북에 남은 누락 기록은 해당 기기 원본을 백업하고 비교해야 확인할 수 있습니다.
 
-새 데이터베이스에 저장소의 SQL을 적용합니다.
+## 기존 기록과 코드
 
-```sh
-npx wrangler d1 migrations apply yeobaek-bible --remote
-```
+기존 Sites 주소의 브라우저 저장소와 서버 기록은 Firebase와 분리되어 있습니다. 새 계정이나 새 주소로 로그인해도 자동 이전되지 않습니다. 기존 기기에서 **내 기록 → 백업 및 복구 → 기기 백업 내려받기**로 원본을 먼저 확보합니다. 가져오기는 사용자가 고른 백업에만 수행하고 겹치는 기록을 무조건 덮어쓰지 않습니다.
 
-## 3. 첫 배포와 접속 주소
+`worker/`, `drizzle/`, `wrangler.jsonc`와 기존 Worker용 Google OAuth 코드는 이전 구현의 검증을 위해 보관합니다. `npm run build:firebase` 배포물은 해당 서버를 실행하지 않습니다. 기존 [Worker 인증 설명](GOOGLE_AUTH.md)은 Firebase 설정 절차가 아닙니다.
 
-```sh
-npx wrangler deploy
-```
+## 공식 자료
 
-배포 결과에 나온 실제 HTTPS 주소가 앱 접속 주소입니다. 기본 형태는 `https://yeobaek-bible.<계정의 workers.dev 하위 도메인>.workers.dev`이며, 하위 도메인은 Cloudflare 계정에서 결정됩니다. 아직 배포하지 않았다면 주소가 확정된 것이 아닙니다.
-
-그 주소를 `wrangler.jsonc`의 `APP_ORIGIN`에 후행 `/` 없이 입력합니다. 이 시점에는 구글 로그인이 아직 활성화되지 않습니다.
-
-## 4. Google 앱 등록
-
-Google Cloud의 Google Auth Platform에서 프로젝트를 만들고 앱 이름·사용자 지원 이메일·대상 사용자를 설정합니다. 테스트 상태라면 사용할 구글 계정을 테스트 사용자로 등록합니다.
-
-OAuth 클라이언트 유형은 **웹 애플리케이션**입니다. 승인된 리디렉션 URI에는 실제 앱 주소에 `/api/auth/google/callback`을 붙인 값을 정확히 등록합니다.
-
-```text
-https://실제-앱-도메인/api/auth/google/callback
-```
-
-클라이언트 ID는 `wrangler.jsonc`의 `GOOGLE_CLIENT_ID`에 입력합니다. 클라이언트 보안 비밀번호는 코드·GitHub·채팅에 기록하지 않고 Cloudflare Secret으로 입력합니다.
-
-```sh
-npx wrangler secret put GOOGLE_CLIENT_SECRET
-npx wrangler deploy
-```
-
-이후 실제 주소에서 구글 로그인, 로그아웃, 재로그인, 다른 기기에서 같은 기록 조회, 다른 계정의 기록 격리를 확인합니다. 다른 계정으로 로그인하면 기존 계정의 필기가 표시되어서는 안 됩니다.
-
-## 5. 로컬 검증과 실제 로그인 검증
-
-로컬에서는 화면과 저장 동작을 확인하고, `npm test`로 인증 응답을 모의한 테스트를 실행합니다. 이 앱은 실제 Google OAuth의 `APP_ORIGIN`을 HTTPS로 제한하므로 HTTP localhost에서는 구글 로그인을 활성화하지 않습니다. `.dev.vars.example`의 인증 값은 로컬 화면 검증 시 비워 둡니다.
-
-```sh
-npx wrangler d1 migrations apply yeobaek-bible --local
-npm run build
-npx wrangler dev
-```
-
-실제 Google 로그인을 시험하려면 별도 HTTPS 테스트 Worker와 전용 D1을 준비하고, 그 Worker의 정확한 HTTPS 콜백 주소를 Google Cloud에 등록합니다. 테스트용과 운영용 클라이언트·데이터베이스를 혼용하지 않습니다.
-
-`.dev.vars`, `.env`, 개인 필기 백업, 인증 토큰, 데이터베이스 파일은 Git에 포함하지 않습니다.
-
-## 기존 필기 이전
-
-새 Worker 데이터베이스는 기존 Sites 기록을 자동으로 가져오지 않습니다. 기존 브라우저에서 **내 기록 → 백업 및 복구 → 기기 백업 내려받기**로 먼저 원본을 확보합니다. 기존 Sites에서 지원되는 계정 연결/가져오기와 별도 호스팅으로의 데이터 이전은 서로 다른 작업입니다. 독립 배포의 기록 복원은 검증된 가져오기 경로가 준비된 뒤에 진행하며, 이메일 주소만 같다고 기존 기록을 자동으로 연결하지 않습니다.
-
-## 공식 설정 자료
-
-- [Cloudflare Wrangler 설정](https://developers.cloudflare.com/workers/wrangler/configuration/)
-- [Cloudflare D1 시작하기](https://developers.cloudflare.com/d1/get-started/)
-- [D1 마이그레이션](https://developers.cloudflare.com/d1/reference/migrations/)
-- [Google OpenID Connect 앱 등록](https://developers.google.com/identity/openid-connect/openid-connect)
+- [Firebase 웹 앱 등록](https://firebase.google.com/docs/web/setup)
+- [Firebase Google 로그인](https://firebase.google.com/docs/auth/web/google-signin)
+- [Hosting 설정](https://firebase.google.com/docs/hosting/full-config)
+- [Hosting 공개 설정 URL](https://firebase.google.com/docs/hosting/reserved-urls)
+- [Spark 요금제와 사용량 제한](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans)

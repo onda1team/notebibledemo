@@ -60,3 +60,22 @@ test('backup includes local and recovery records without changing them',async()=
  const h=harness();await h.c.load();h.records([{id:'PSA23',dirty:true,state:{text:{note:'my local note'}}}]);h.c.downloadBackup();
  assert.equal(h.backups[0].records[0].state.text.note,'my local note');assert.equal(h.navigations.length,0);
 });
+test('Firebase popup sign-in reconnects the new uid without navigating or reloading',async()=>{
+ let info={account:null,provider:null,googleEnabled:true,hasLegacyAccount:false},owner=null,locks=0,connects=0,signIns=0,view;
+ const sync={account:()=>owner,entries:()=>[],hasUnsavedRecovery:()=>false,lock:()=>{owner=null;locks++}};
+ const firebase={ready:async()=>info,signIn:async()=>{signIns++;info={...info,account:'firebase:A',provider:'google',user:{email:'test@example.invalid'}}}};
+ const controller=create({firebase,request:()=>{throw Error('must use SDK')},app:{sync,connectSync:async()=>{connects++;owner=info.account;return true;}},render:v=>view=v,navigate:()=>{throw Error('no navigation')},reload:()=>{throw Error('no reload')}});
+ await controller.load();assert.equal(await controller.login(),true);assert.equal(signIns,1);assert.equal(locks,1);assert.equal(connects,1);assert.equal(view.session.account,'firebase:A');
+});
+test('Firebase external account change locks old records before reconnecting new uid',async()=>{
+ let owner='firebase:A',info={account:'firebase:B',provider:'google',googleEnabled:true},events=[];
+ const app={sync:{account:()=>owner,lock:()=>{events.push('lock');owner=null}},prepareSync:()=>events.push('prepare'),save:()=>events.push('save'),connectSync:async()=>{events.push('connect');owner=info.account;return true;}};
+ const controller=create({firebase:{ready:async()=>info},app,request:()=>{throw Error('no API')}});
+ await controller.onAuthChange();assert.deepEqual(events,['prepare','save','lock','connect']);assert.equal(owner,'firebase:B');
+});
+test('Firebase logout remains blocked when the current account has pending notes',async()=>{
+ let signOuts=0;const info={account:'firebase:A',provider:'google',googleEnabled:true};
+ const app={sync:{account:()=>info.account,hasUnsavedRecovery:()=>false,entries:()=>[],flush:async()=>({...clean,pending:1})},canUpdate:()=>true,prepareSync(){},save(){}};
+ const controller=create({firebase:{ready:async()=>info,signOut:async()=>signOuts++},app,request:()=>{throw Error('no API')}});
+ await controller.load();assert.equal(await controller.logout(),false);assert.equal(signOuts,0);
+});

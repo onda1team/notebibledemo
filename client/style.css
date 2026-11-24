@@ -12,6 +12,7 @@ button:disabled{cursor:default;opacity:.38}
 .auth-bar button:hover:not(:disabled){background:#edf3e9}.auth-bar .google-login{color:#303a34}.google-login>span{font-family:Arial,sans-serif;color:#4285f4;font-weight:700;margin-right:4px}
 .auth-bar #authNotice{flex-basis:100%;margin:1px 0 0;text-align:right;line-height:1.45;color:#76522e}
 .auth-bar [hidden]{display:none!important}
+.backup-import-row{padding:9px 0;border-bottom:1px solid var(--line)}.backup-import-row label{display:flex;gap:8px;align-items:flex-start;font-size:12px}.backup-import-row pre{max-height:180px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:12px}.backup-import-row details{padding:7px 0 0 22px;font-size:12px}
 @media(max-width:559px){.auth-bar{gap:4px 7px;padding-bottom:5px}.auth-bar #authAccount{max-width:45vw}.auth-bar #authNotice{font-size:10px}}
 [hidden]{display:none!important}
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

@@ -1,3 +1,5 @@
+> 기존 Worker/Sites 서버용 문서입니다. 현재 Firebase 배포는 [배포 안내](DEPLOYMENT.md)를 따릅니다.
+
 # Google 로그인 설정
 
 Google Cloud Console에서 OAuth 클라이언트 유형을 **웹 애플리케이션**으로 만들고 승인된 리디렉션 URI를 정확히 등록합니다.

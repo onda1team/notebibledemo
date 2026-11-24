@@ -127,7 +127,7 @@ $('importSync').addEventListener('click',async()=>{
  for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i),p=prefixes.find(p=>key?.startsWith(p));if(p)ids.add(key.slice(p.length));}
  for(const id of ids){if(!app.bible.byId(id))continue;try{let raw;for(const p of prefixes){raw=localStorage.getItem(p+id);if(raw!==null)break;}const state=app.legacyState(JSON.parse(raw));if(!state||state.version!==2)throw Error();items.push({id,state});}catch{unreadable++;}}
  if(!items.length){$('importResult').textContent=unreadable?'읽을 수 없는 기존 기록이 있어요. 원본은 유지했습니다.':'가져올 기존 기록이 없습니다.';return;}
- if(!confirm('이 브라우저의 기존 기록 '+items.length+'개를 현재 로그인한 ChatGPT 계정에 복사할까요? 다른 사람이 쓰던 브라우저라면 취소해 주세요. 원본은 유지됩니다.'))return;
+ if(!confirm('이 브라우저의 기존 기록 '+items.length+'개를 현재 로그인한 계정에 복사할까요? 다른 사람이 쓰던 브라우저라면 취소해 주세요. 원본은 유지됩니다.'))return;
  $('importSync').disabled=true;app.prepareSync();
  try{const r=await sync.importRecords(items);try{localStorage.setItem('yeobaek-import-noted:'+encodeURIComponent(sync.account()),'1');}catch{}$('importResult').textContent=r.added+'개 가져오기 처리. '+(r.skipped?r.skipped+'개는 현재 기록과 달라 제외했어요. 기기 백업 내려받기에서 확인할 수 있어요. ':'')+(unreadable?unreadable+'개는 읽지 못해 원본을 남겼어요. ':'')+'겹친 기록과 동기화 상태를 확인해 주세요.';}catch{$('importResult').textContent='가져오기를 완료하지 못했어요. 원본은 유지했습니다.';}draw();
 });
